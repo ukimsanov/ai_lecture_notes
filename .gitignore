@@ -5,3 +5,7 @@ __pycache__/
 *.log
 .DS_Store
 uv.lock
+
+# Project specific
+output/
+Users/  # To prevent duplicate directory structures from being committed
