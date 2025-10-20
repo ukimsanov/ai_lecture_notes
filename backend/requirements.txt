@@ -1,0 +1,35 @@
+# FastAPI & Server
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+python-dotenv==1.0.1
+
+# YouTube Processing
+youtube-transcript-api==1.2.3
+yt-dlp==2025.10.14
+
+# Data Models & Validation
+pydantic==2.9.0
+pydantic-settings==2.5.0
+
+# AI/LLM - Phase 1 & 2
+google-genai==1.0.0
+openai>=1.109.1
+
+# LangGraph - Phase 2 (Multi-Agent Orchestration)
+# Version 1.0.0 released October 17, 2025
+langgraph==1.0.0
+langchain-openai==1.0.0
+
+# Database - Phase 3 (PostgreSQL Persistence)
+# SQLAlchemy 2.0.44 released October 10, 2025
+sqlalchemy[asyncio]==2.0.44
+asyncpg==0.30.0
+alembic==1.17.0
+
+# LangGraph Checkpointing - Phase 3
+# Version 2.0.25 released October 7, 2025
+langgraph-checkpoint-postgres==2.0.25
+psycopg[binary]>=3.2.0
+
+# CORS
+python-multipart==0.0.9
