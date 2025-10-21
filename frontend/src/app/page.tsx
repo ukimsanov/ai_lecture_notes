@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { BackgroundBeams } from "@/components/ui/background-beams";
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import {
   Modal,
   ModalContent,
@@ -86,6 +87,11 @@ export default function Home() {
     <div className="relative min-h-screen bg-background overflow-hidden">
       {/* Background Beams */}
       <BackgroundBeams className="opacity-40" />
+
+      {/* Theme Toggler - Fixed Position */}
+      <div className="fixed top-6 right-6 z-50">
+        <AnimatedThemeToggler className="p-3 rounded-full bg-card/80 backdrop-blur-sm border border-border/50 hover:bg-card hover:border-border transition-all duration-200 shadow-lg hover:shadow-xl" />
+      </div>
 
       <div className="relative z-10 min-h-screen p-6 md:p-12">
         <div className="max-w-5xl mx-auto space-y-12">
@@ -186,20 +192,16 @@ export default function Home() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="prose prose-base dark:prose-invert max-w-none
-                    prose-headings:font-bold prose-headings:tracking-tight
-                    prose-h1:text-3xl prose-h1:mb-4 prose-h1:mt-6
-                    prose-h2:text-2xl prose-h2:mb-3 prose-h2:mt-5
-                    prose-h3:text-xl prose-h3:mb-2 prose-h3:mt-4
-                    prose-p:text-foreground prose-p:leading-7 prose-p:mb-4
-                    prose-strong:text-foreground prose-strong:font-semibold
-                    prose-ul:my-4 prose-ul:list-disc prose-ul:pl-6
-                    prose-ol:my-4 prose-ol:list-decimal prose-ol:pl-6
-                    prose-li:text-foreground prose-li:my-1 prose-li:leading-7
-                    prose-a:text-primary prose-a:underline prose-a:font-medium
-                    prose-code:text-primary prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded
-                    prose-pre:bg-muted prose-pre:p-4 prose-pre:rounded-lg
-                    prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:pl-4 prose-blockquote:italic
+                  <div className="prose prose-lg dark:prose-invert max-w-none
+                    prose-headings:tracking-tight
+                    prose-p:text-foreground
+                    prose-strong:text-foreground
+                    prose-li:text-foreground
+                    prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                    prose-code:text-primary prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-sm prose-code:before:content-none prose-code:after:content-none
+                    prose-pre:bg-muted prose-pre:border prose-pre:border-border
+                    prose-blockquote:border-primary prose-blockquote:bg-muted/50 prose-blockquote:not-italic
+                    prose-img:rounded-lg
                   ">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {result.lecture_notes}
