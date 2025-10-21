@@ -1,11 +1,11 @@
 # NoteLens - Complete Project State
-**Last Updated:** 2025-10-20 (Phase 1 Complete)
+**Last Updated:** 2025-10-21 (Phase 4 Complete, Phase 5 In Progress)
 
 ## Project Overview
 
 **Name:** NoteLens
 **Purpose:** AI-powered YouTube lecture notes generator with multi-agent orchestration (portfolio showcase project)
-**Current Phase:** Phase 1 Complete - Single-agent processing with Gemini 2.5 Flash
+**Current Phase:** Phase 5 In Progress - Real-time SSE streaming for agent updates
 
 ## Technology Stack (Verified October 2025)
 
@@ -13,14 +13,35 @@
 - **Python:** 3.13.7
 - **Framework:** FastAPI 0.115.0
 - **Server:** Uvicorn 0.32.0 (with auto-reload)
-- **AI/LLM:** google-genai 1.0.0 (Gemini 2.5 Flash)
+- **AI/LLM:**
+  - google-genai 1.0.0 (Gemini 2.5 Flash) - Summarization
+  - openai 1.109.1+ (GPT-4o-mini) - AI tool extraction
+- **Multi-Agent:**
+  - langgraph 1.0.0 - Orchestration
+  - langchain-openai 1.0.0 - OpenAI integration
+  - langgraph-checkpoint-postgres 2.0.25 - State persistence
+- **Database:**
+  - PostgreSQL (Neon free tier)
+  - SQLAlchemy 2.0+ (async)
+  - Alembic - Migrations
 - **YouTube:** youtube-transcript-api 1.2.3, yt-dlp 2025.10.14
 - **Data Validation:** Pydantic 2.9.0
 - **Environment:** python-dotenv 1.0.1
 
+### Frontend
+- **Framework:** Next.js 15.5.6 with App Router
+- **React:** 19.1.0
+- **Styling:** Tailwind CSS v4
+- **UI Components:** shadcn/ui
+- **Typography:** @tailwindcss/typography
+- **Markdown:** react-markdown 10.1.0 + remark-gfm
+- **Theme:** next-themes (dark mode)
+- **Special Effects:** Magic UI (animated-theme-toggler, background-beams, shimmer-button)
+
 ### API Keys Required
-- `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) - for Gemini 2.5 Flash
-- `OPENAI_API_KEY` - for Phase 2 (GPT-4o-mini tool extraction)
+- `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) - Gemini 2.5 Flash
+- `OPENAI_API_KEY` - GPT-4o-mini tool extraction
+- `DATABASE_URL` - Neon PostgreSQL connection string
 
 ## Completed Phases
 
@@ -106,6 +127,131 @@ backend/app/
   }
 }
 ```
+
+### ✅ Phase 2: Multi-Agent LangGraph Orchestration
+**Files Added:**
+```
+backend/app/
+├── agents/
+│   ├── __init__.py
+│   └── orchestrator.py      # LangGraph StateGraph with 3 agents
+└── tools/
+    └── tool_extractor.py    # GPT-4o-mini AI tool extraction
+```
+
+**Key Implementation:**
+1. **LangGraph 1.0.0 StateGraph:**
+   - Agent 1: Fetch transcript (YouTubeTranscriptExtractor)
+   - Agent 2: Generate lecture notes (Gemini 2.5 Flash)
+   - Agent 3: Extract AI tools (GPT-4o-mini)
+   - Agents 2 & 3 run in **parallel** after Agent 1
+
+2. **Parallel Execution Pattern:**
+   ```python
+   workflow.add_edge(START, "fetch_transcript")
+   workflow.add_edge("fetch_transcript", "summarize")       # Parallel
+   workflow.add_edge("fetch_transcript", "extract_tools")   # Parallel
+   workflow.add_edge("summarize", END)
+   workflow.add_edge("extract_tools", END)
+   ```
+
+3. **State Management:**
+   - `OverallState` TypedDict with all state keys
+   - Node-specific output types for clean interfaces
+   - `Annotated[List[str], operator.add]` for parallel list updates
+
+**Endpoints:**
+- `POST /api/process` - Now uses multi-agent orchestration
+
+### ✅ Phase 3: PostgreSQL Database & Checkpointing
+**Files Added:**
+```
+backend/
+├── app/
+│   └── database/
+│       ├── __init__.py
+│       ├── connection.py    # Async PostgreSQL connection
+│       └── models.py        # SQLAlchemy models (Video, ProcessingResult)
+├── alembic/
+│   ├── env.py
+│   └── versions/
+│       └── b9e227681a52_initial_tables_videos_and_processing_.py
+└── alembic.ini
+```
+
+**Key Implementation:**
+1. **Database Schema:**
+   - `videos` table: video_id, title, channel, duration, times_processed
+   - `processing_results` table: transcript, notes, ai_tools (JSON), processing_time
+
+2. **LangGraph Checkpointing:**
+   - `AsyncPostgresSaver` for state persistence
+   - Connection pool with psycopg for async operations
+   - Automatic checkpoint table creation via `checkpointer.setup()`
+
+3. **SQLAlchemy 2.0 Async:**
+   - Async engine with asyncpg driver
+   - Dependency injection for database sessions
+   - Automatic transaction management
+
+**Database Provider:**
+- Neon PostgreSQL (free tier, serverless)
+
+### ✅ Phase 4: Next.js Frontend with Modern UI
+**Files Created:**
+```
+frontend/
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx          # Root layout with ThemeProvider
+│   │   ├── page.tsx            # Main UI (URL input, results display)
+│   │   └── globals.css         # Tailwind v4 config
+│   ├── components/
+│   │   ├── providers/
+│   │   │   └── theme-provider.tsx
+│   │   └── ui/                 # shadcn/ui + Magic UI components
+│   │       ├── animated-gradient-text.tsx
+│   │       ├── animated-theme-toggler.tsx
+│   │       ├── background-beams.tsx
+│   │       ├── shimmer-button.tsx
+│   │       ├── card.tsx
+│   │       ├── input.tsx
+│   │       └── modal.tsx
+├── package.json
+├── next.config.ts
+├── tsconfig.json
+└── tailwind.config.ts
+```
+
+**Key Features:**
+1. **Modern Tech Stack:**
+   - Next.js 15.5.6 with App Router
+   - React 19.1.0
+   - Tailwind CSS v4 (new @plugin directive)
+   - TypeScript strict mode
+
+2. **UI/UX:**
+   - Dark mode with next-themes (system preference detection)
+   - Markdown rendering with react-markdown + remark-gfm
+   - ChatGPT-style typography (@tailwindcss/typography)
+   - Magic UI animations (theme toggler, background beams, shimmer button)
+   - Responsive design (mobile-first)
+
+3. **Typography System:**
+   - Base: 16px, line-height 1.6 (WCAG compliant)
+   - Optimized spacing: tighter margins for ChatGPT-like density
+   - Horizontal rules for section separation
+   - Emojis at end of headers only (max 3 total)
+
+4. **Prompt Engineering:**
+   - Principle-based prompts (not rigid rules)
+   - ChatGPT-style voice: "clear, structured, concise, human"
+   - Compression rules: 4-6 lines per section max
+   - Suggested sections: Executive Summary ✅, Key Concepts 💡, Quick Takeaways 🔑
+
+**Live URLs:**
+- Frontend: http://localhost:3001
+- Backend: http://localhost:8000
 
 ## Verified Research & Documentation
 
@@ -219,36 +365,67 @@ curl -X POST http://localhost:8000/api/process \
   -d '{"video_url": "https://www.youtube.com/watch?v=jNQXAC9IVRw"}'
 ```
 
-## Upcoming Phases (NOT YET IMPLEMENTED)
+## Current Phase (IN PROGRESS)
 
-### Phase 2: Multi-Agent LangGraph
-- Install LangGraph 1.0.0, langchain-core
-- Create StateGraph with 3 agents:
-  1. transcript_fetcher_agent (uses existing tool)
-  2. summarizer_agent (Gemini Flash)
-  3. tool_extractor_agent (GPT-4o-mini for AI tools)
-- Implement parallel execution (agents 2+3 run simultaneously)
-- Add AI tool extraction to response
+### 🚧 Phase 5: ChatGPT-Style Streaming with Thinking Process
+**Goal:** Stream lecture notes in real-time with thinking process display (exactly like ChatGPT)
 
-### Phase 3: Database & Checkpointing
-- Setup Neon PostgreSQL (free tier)
-- Install langgraph-checkpoint-postgres
-- Implement LangGraph checkpointing
-- Create processing history table
-- Add `GET /api/history` endpoint
+**Why SSE over WebSocket? (Researched Oct 2025)**
+- ✅ One-way communication (Server → Client) - perfect for streaming
+- ✅ Simpler than WebSocket, works over HTTP
+- ✅ Automatic reconnection built-in
+- ✅ Native FastAPI support via `sse-starlette`
 
-### Phase 4: Next.js Frontend
-- Create Next.js 15 project with TypeScript
-- Install shadcn/ui components
-- Build landing page with URL input
-- Create results page with markdown rendering
-- Implement dark mode with next-themes
+**ChatGPT-Style UX:**
+1. **Thinking Process** (like ChatGPT's status messages):
+   - "Thinking..." with pulsing animation
+   - "Fetching transcript..."
+   - "Generating lecture notes..."
+   - "Extracting AI tools..."
 
-### Phase 5: Real-Time Features
-- Add FastAPI WebSocket endpoint
-- Stream agent status updates
-- Implement streaming markdown display
-- Add progress indicators
+2. **Streaming Text Generation** (character-by-character or chunk):
+   - Notes appear as they're generated (typing effect)
+   - Markdown renders progressively
+   - No loading overlay needed - content streams in
+
+3. **Visual Design:**
+   - Subtle "thinking" indicator (3 pulsing dots)
+   - Status text above streaming content
+   - Smooth transition between agents
+
+**Implementation Plan:**
+
+**Backend:**
+- Install `sse-starlette` for production-ready SSE
+- Create `/api/process/stream` endpoint with `EventSourceResponse`
+- Modify Gemini summarizer to stream chunks (not wait for full response)
+- Yield SSE events:
+  - `{type: "status", data: "Thinking..."}`
+  - `{type: "status", data: "Generating notes..."}`
+  - `{type: "chunk", data: "This video discusses..."}`  ← Stream text
+  - `{type: "tools", data: [{tool1}, {tool2}]}`
+  - `{type: "complete"}`
+
+**Frontend:**
+- Use browser native `EventSource` API
+- Display thinking status with pulsing animation
+- Append text chunks to lecture notes in real-time
+- React-markdown re-renders as content grows
+- Show AI tools when ready
+
+**Key References:**
+- `sse-starlette`: https://pypi.org/project/sse-starlette/
+- Gemini streaming: Check if `generate_content_stream()` exists
+- ChatGPT UX: Status → Streaming content → Complete
+
+## Upcoming Phases
+
+### Phase 6: Polish & Features
+- Export formats (MD, JSON, PDF)
+- Processing history UI
+- Sample video presets
+- Error state improvements
+- Mobile UX refinements
 
 ### Phase 6: Polish & Features
 - Dark mode toggle
