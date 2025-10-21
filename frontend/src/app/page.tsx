@@ -31,11 +31,15 @@ function formatDuration(seconds: number): string {
   return `${minutes}m ${remainingSeconds}s`;
 }
 
-// Loading spinner component
-function LoadingSpinner() {
+// Loading indicator component - simplified to avoid double circular animation with shimmer
+function LoadingIndicator() {
   return (
     <div className="flex items-center gap-2">
-      <div className="h-5 w-5 animate-spin rounded-full border-3 border-purple-500 border-t-transparent" />
+      <div className="flex gap-1">
+        <div className="h-2 w-2 animate-bounce rounded-full bg-white [animation-delay:-0.3s]" />
+        <div className="h-2 w-2 animate-bounce rounded-full bg-white [animation-delay:-0.15s]" />
+        <div className="h-2 w-2 animate-bounce rounded-full bg-white" />
+      </div>
       <span>Processing</span>
     </div>
   );
@@ -85,8 +89,10 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen bg-background overflow-hidden">
-      {/* Background Beams */}
-      <BackgroundBeams className="opacity-40" />
+      {/* Background Beams - Always visible behind content */}
+      <div className="fixed inset-0 z-0">
+        <BackgroundBeams className="opacity-65 dark:opacity-60" />
+      </div>
 
       {/* Theme Toggler - Fixed Position */}
       <div className="fixed top-6 right-6 z-50">
@@ -96,11 +102,11 @@ export default function Home() {
       <div className="relative z-10 min-h-screen p-6 md:p-12">
         <div className="max-w-5xl mx-auto space-y-12">
           {/* Header */}
-          <div className="text-center space-y-6 pt-16">
+          <div className="text-center space-y-8 pt-20 pb-4">
             <AnimatedGradientText className="text-5xl md:text-7xl font-bold tracking-tight">
               AI Lecture Notes
             </AnimatedGradientText>
-            <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto">
+            <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
               Transform YouTube lectures into comprehensive notes with AI-powered multi-agent analysis
             </p>
           </div>
@@ -127,11 +133,14 @@ export default function Home() {
                 <ShimmerButton
                   type="submit"
                   disabled={loading || !videoUrl}
-                  className="h-12 px-8 text-base font-semibold sm:min-w-[180px]"
-                  shimmerColor="#a855f7"
+                  className="h-12 px-8 text-base font-semibold sm:min-w-[180px] hover:shadow-2xl hover:brightness-110 transition-all duration-300"
+                  shimmerColor="#ffffff"
+                  shimmerSize="0.1em"
+                  shimmerDuration="2s"
                   background="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+                  borderRadius="0.75rem"
                 >
-                  {loading ? <LoadingSpinner /> : "Generate Notes"}
+                  {loading ? <LoadingIndicator /> : "Generate Notes"}
                 </ShimmerButton>
               </form>
             </CardContent>
@@ -142,8 +151,8 @@ export default function Home() {
             <Card className="border-destructive/50 bg-destructive/5 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-destructive flex items-center gap-2">
-                  <span className="text-2xl">⚠️</span>
                   Error
+                  <span className="text-2xl">⚠️</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -184,24 +193,45 @@ export default function Home() {
               <Card className="backdrop-blur-xl bg-background/80 border-border/50 shadow-xl">
                 <CardHeader>
                   <CardTitle className="text-2xl md:text-3xl flex items-center gap-3">
-                    <span className="text-3xl">📝</span>
                     Lecture Notes
+                    <span className="text-3xl">📝</span>
                   </CardTitle>
                   <CardDescription className="text-base">
                     AI-generated summary and key points from the lecture
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="prose prose-lg dark:prose-invert max-w-none
-                    prose-headings:tracking-tight
-                    prose-p:text-foreground
-                    prose-strong:text-foreground
-                    prose-li:text-foreground
-                    prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                    prose-code:text-primary prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-sm prose-code:before:content-none prose-code:after:content-none
-                    prose-pre:bg-muted prose-pre:border prose-pre:border-border
-                    prose-blockquote:border-primary prose-blockquote:bg-muted/50 prose-blockquote:not-italic
-                    prose-img:rounded-lg
+                  <div className="prose prose-sm dark:prose-invert max-w-none
+                    [font-size:16px] [line-height:1.6]
+
+                    prose-headings:tracking-tight prose-headings:font-semibold prose-headings:scroll-mt-20 prose-headings:flex prose-headings:items-center prose-headings:gap-2
+                    prose-h1:text-2xl prose-h1:mb-3 prose-h1:mt-6 prose-h1:first:mt-0
+                    prose-h2:text-xl prose-h2:mb-2.5 prose-h2:mt-5 prose-h2:inline-flex prose-h2:w-full
+                    prose-h3:text-lg prose-h3:mb-2 prose-h3:mt-4 prose-h3:inline-flex
+
+                    prose-p:text-foreground prose-p:mb-3 prose-p:leading-[1.6] prose-p:last:mb-0
+                    prose-strong:text-foreground prose-strong:font-semibold
+                    prose-em:text-foreground prose-em:italic
+
+                    prose-ul:my-2.5 prose-ul:ml-0 prose-ul:list-disc prose-ul:pl-6
+                    prose-ol:my-2.5 prose-ol:ml-0 prose-ol:list-decimal prose-ol:pl-6
+                    prose-li:text-foreground prose-li:my-0.5 prose-li:leading-[1.6] prose-li:marker:text-primary/70
+
+                    prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-a:font-medium prose-a:transition-colors
+
+                    prose-code:text-primary prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-[14px] prose-code:before:content-none prose-code:after:content-none prose-code:font-normal
+                    prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border/50 prose-pre:p-4 prose-pre:rounded-lg prose-pre:text-sm prose-pre:my-3 prose-pre:overflow-x-auto
+                    prose-pre:code:bg-transparent prose-pre:code:p-0
+
+                    prose-blockquote:border-l-4 prose-blockquote:border-primary/50 prose-blockquote:bg-muted/30 prose-blockquote:pl-4 prose-blockquote:pr-4 prose-blockquote:py-3 prose-blockquote:not-italic prose-blockquote:my-3 prose-blockquote:text-muted-foreground
+
+                    prose-hr:border-border prose-hr:my-6 prose-hr:border-t
+
+                    prose-table:my-3 prose-table:border-collapse prose-table:w-full
+                    prose-th:border prose-th:border-border prose-th:bg-muted/50 prose-th:p-2 prose-th:text-left prose-th:font-semibold
+                    prose-td:border prose-td:border-border prose-td:p-2
+
+                    prose-img:rounded-lg prose-img:my-3 prose-img:shadow-md
                   ">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {result.lecture_notes}
@@ -215,8 +245,8 @@ export default function Home() {
                 <Card className="backdrop-blur-xl bg-background/80 border-border/50 shadow-xl">
                   <CardHeader>
                     <CardTitle className="text-2xl md:text-3xl flex items-center gap-3">
-                      <span className="text-3xl">🤖</span>
                       AI Tools Detected
+                      <span className="text-3xl">🤖</span>
                       <span className="text-lg font-normal text-muted-foreground">
                         ({result.ai_tools.length})
                       </span>
@@ -231,20 +261,22 @@ export default function Home() {
                         <button
                           key={index}
                           onClick={() => handleToolClick(tool)}
-                          className="group relative p-6 border border-border/50 rounded-xl bg-gradient-to-br from-background/50 to-muted/20 hover:from-background/70 hover:to-muted/40 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] space-y-3 overflow-hidden text-left w-full cursor-pointer"
+                          className="group relative p-6 border border-border/50 rounded-xl overflow-hidden text-left w-full cursor-pointer
+                            bg-card/50 hover:bg-card
+                            transition-all duration-300 hover:shadow-xl hover:scale-[1.02] hover:border-primary/30
+                            before:absolute before:inset-0 before:bg-gradient-to-br before:from-purple-500/0 before:to-blue-500/0
+                            hover:before:from-purple-500/10 hover:before:to-blue-500/10
+                            before:transition-all before:duration-300 before:rounded-xl"
                         >
-                          {/* Subtle gradient overlay on hover - FULL CARD */}
-                          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none" />
-
-                          <div className="relative z-10">
-                            <div className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors">
+                          <div className="relative z-10 space-y-3">
+                            <div className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors duration-300">
                               {tool.tool_name || "Unknown Tool"}
                             </div>
-                            <div className="text-sm text-muted-foreground leading-relaxed mt-2 line-clamp-2">
+                            <div className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
                               {tool.context_snippet || tool.usage_context || "No context available"}
                             </div>
                             {tool.category && (
-                              <div className="flex gap-2 flex-wrap mt-3">
+                              <div className="flex gap-2 flex-wrap">
                                 <span className="text-xs px-3 py-1.5 bg-primary/10 text-primary rounded-full border border-primary/20 font-medium">
                                   {tool.category}
                                 </span>
@@ -268,8 +300,8 @@ export default function Home() {
                 <Card className="backdrop-blur-xl bg-background/80 border-border/50 shadow-xl">
                   <CardHeader>
                     <CardTitle className="text-2xl md:text-3xl flex items-center gap-3">
-                      <span className="text-3xl">🤖</span>
                       AI Tools Detected
+                      <span className="text-3xl">🤖</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -286,72 +318,78 @@ export default function Home() {
 
       {/* Tool Detail Modal */}
       <Modal open={modalOpen} onOpenChange={setModalOpen}>
-        <ModalContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <ModalHeader>
-            <ModalTitle className="text-2xl font-bold">
-              {selectedTool?.tool_name || "Tool Details"}
-            </ModalTitle>
-            <ModalDescription>
-              Complete information about this AI tool
+        <ModalContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <ModalHeader className="border-b border-border/50 pb-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <ModalTitle className="text-2xl font-semibold tracking-tight">
+                {selectedTool?.tool_name || "Tool Details"}
+              </ModalTitle>
+              {selectedTool?.category && (
+                <span className="text-sm px-4 py-1.5 bg-primary/10 text-primary rounded-full border border-primary/20 font-medium">
+                  {selectedTool.category}
+                </span>
+              )}
+            </div>
+            <ModalDescription className="text-base mt-1.5">
+              Detailed information extracted from the lecture
             </ModalDescription>
           </ModalHeader>
-          <ModalBody className="space-y-6">
+          <ModalBody className="space-y-6 py-6">
             {selectedTool && (
               <>
-                {selectedTool.category && (
-                  <div>
-                    <h3 className="font-semibold text-lg mb-2">Category</h3>
-                    <span className="text-sm px-4 py-2 bg-primary/10 text-primary rounded-full border border-primary/20 font-medium inline-block">
-                      {selectedTool.category}
-                    </span>
+                {/* Confidence Score - Moved to top */}
+                {selectedTool.confidence_score && (
+                  <div className="space-y-2 pb-4 border-b border-border/30">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground">Confidence Score</span>
+                      <span className="text-sm font-semibold text-primary">
+                        {Math.round(selectedTool.confidence_score * 100)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden">
+                      <div
+                        className="bg-primary h-full transition-all duration-500 ease-out rounded-full"
+                        style={{ width: `${selectedTool.confidence_score * 100}%` }}
+                      />
+                    </div>
                   </div>
                 )}
 
+                {/* Context Quote */}
                 {selectedTool.context_snippet && (
-                  <div>
-                    <h3 className="font-semibold text-lg mb-2">Context from Lecture</h3>
-                    <p className="text-muted-foreground leading-relaxed italic bg-muted/30 p-4 rounded-lg border-l-4 border-primary">
-                      "{selectedTool.context_snippet}"
-                    </p>
+                  <div className="space-y-3">
+                    <h3 className="text-base font-semibold text-foreground">
+                      Context from Lecture
+                    </h3>
+                    <blockquote className="relative pl-5 py-4 pr-4 bg-muted/40 rounded-lg border-l-[3px] border-primary">
+                      <p className="text-[15px] leading-[1.6] text-foreground/90 italic">
+                        "{selectedTool.context_snippet}"
+                      </p>
+                    </blockquote>
                   </div>
                 )}
 
+                {/* Usage Context */}
                 {selectedTool.usage_context && (
-                  <div>
-                    <h3 className="font-semibold text-lg mb-2">How It's Used</h3>
-                    <p className="text-muted-foreground leading-relaxed">
+                  <div className="space-y-3">
+                    <h3 className="text-base font-semibold text-foreground">
+                      How It's Used
+                    </h3>
+                    <p className="text-[15px] leading-[1.6] text-muted-foreground">
                       {selectedTool.usage_context}
                     </p>
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
-                  {selectedTool.confidence_score && (
-                    <div>
-                      <h3 className="font-semibold text-sm mb-2">Confidence Score</h3>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
-                          <div
-                            className="bg-primary h-full transition-all duration-300"
-                            style={{ width: `${selectedTool.confidence_score * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-sm font-medium">
-                          {Math.round(selectedTool.confidence_score * 100)}%
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedTool.timestamp !== null && selectedTool.timestamp !== undefined && (
-                    <div>
-                      <h3 className="font-semibold text-sm mb-2">Mentioned At</h3>
-                      <p className="text-muted-foreground">
-                        {Math.floor(selectedTool.timestamp / 60)}:{String(Math.floor(selectedTool.timestamp % 60)).padStart(2, '0')}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                {/* Timestamp */}
+                {selectedTool.timestamp !== null && selectedTool.timestamp !== undefined && (
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border-t border-border/30 mt-4">
+                    <span className="text-sm font-medium text-foreground">Mentioned At</span>
+                    <span className="text-sm font-mono font-semibold text-primary">
+                      {Math.floor(selectedTool.timestamp / 60)}:{String(Math.floor(selectedTool.timestamp % 60)).padStart(2, '0')}
+                    </span>
+                  </div>
+                )}
               </>
             )}
           </ModalBody>
