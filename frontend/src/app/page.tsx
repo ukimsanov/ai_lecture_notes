@@ -3,6 +3,7 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { marked } from "marked";
 import { toast } from "sonner";
 import { FileText, FileJson, FileDown, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -315,18 +316,7 @@ export default function Home() {
               <strong>Duration:</strong> ${formatDuration(streamedMetadata.duration)}
             </div>
             <hr />
-            ${streamedNotes.split('\n').map(line => {
-              // Simple markdown to HTML conversion
-              line = line.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-              line = line.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-              line = line.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-              line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-              line = line.replace(/\*(.*?)\*/g, '<em>$1</em>');
-              line = line.replace(/\`(.*?)\`/g, '<code>$1</code>');
-              line = line.replace(/^- (.*$)/gim, '<li>$1</li>');
-              line = line.replace(/^\d+\. (.*$)/gim, '<li>$1</li>');
-              return line;
-            }).join('\n')}
+            ${marked.parse(streamedNotes)}
           </body>
         </html>
       `;
