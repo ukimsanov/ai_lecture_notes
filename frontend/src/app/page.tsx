@@ -28,6 +28,31 @@ import {
   ModalBody,
 } from "@/components/ui/modal";
 
+// TypeScript interfaces
+interface VideoMetadata {
+  video_title: string;
+  channel_name: string;
+  duration: number;
+  transcript?: string;
+}
+
+interface AITool {
+  tool_name: string;
+  category?: string;
+  confidence_score?: number;
+  context_snippet?: string;
+  usage_context?: string;
+  timestamp?: number;
+}
+
+type StepStatus = "pending" | "in_progress" | "completed";
+
+interface ProcessingStep {
+  id: string;
+  label: string;
+  status: StepStatus;
+}
+
 // Utility function to format duration
 function formatDuration(seconds: number): string {
   if (seconds < 60) {
@@ -46,23 +71,15 @@ function LoadingIndicator() {
   return <span>Processing</span>;
 }
 
-type StepStatus = "pending" | "in_progress" | "completed";
-
-interface ProcessingStep {
-  id: string;
-  label: string;
-  status: StepStatus;
-}
-
 export default function Home() {
   const [videoUrl, setVideoUrl] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamedNotes, setStreamedNotes] = useState<string>("");
-  const [streamedMetadata, setStreamedMetadata] = useState<any>(null);
-  const [streamedTools, setStreamedTools] = useState<any[]>([]);
+  const [streamedMetadata, setStreamedMetadata] = useState<VideoMetadata | null>(null);
+  const [streamedTools, setStreamedTools] = useState<AITool[]>([]);
   const [streamedTranscript, setStreamedTranscript] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
-  const [selectedTool, setSelectedTool] = useState<any>(null);
+  const [selectedTool, setSelectedTool] = useState<AITool | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [transcriptModalOpen, setTranscriptModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -171,7 +188,7 @@ export default function Home() {
     }
   };
 
-  const handleToolClick = (tool: any) => {
+  const handleToolClick = (tool: AITool) => {
     setSelectedTool(tool);
     setModalOpen(true);
   };
@@ -629,7 +646,7 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-4 md:grid-cols-2">
-                      {streamedTools.map((tool: any, index: number) => (
+                      {streamedTools.map((tool: AITool, index: number) => (
                         <button
                           key={index}
                           onClick={() => handleToolClick(tool)}
@@ -735,7 +752,7 @@ export default function Home() {
                     </h3>
                     <blockquote className="relative pl-5 py-4 pr-4 bg-muted/40 rounded-lg border-l-[3px] border-primary">
                       <p className="text-[15px] leading-[1.6] text-foreground/90 italic">
-                        "{selectedTool.context_snippet}"
+                        &ldquo;{selectedTool.context_snippet}&rdquo;
                       </p>
                     </blockquote>
                   </div>
@@ -745,7 +762,7 @@ export default function Home() {
                 {selectedTool.usage_context && (
                   <div className="space-y-3">
                     <h3 className="text-base font-semibold text-foreground">
-                      How It's Used
+                      How It&apos;s Used
                     </h3>
                     <p className="text-[15px] leading-[1.6] text-muted-foreground">
                       {selectedTool.usage_context}

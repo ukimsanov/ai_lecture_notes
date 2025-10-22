@@ -21,7 +21,7 @@ export function useEventSource(
   enabled: boolean = true
 ) {
   const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Memoize disconnect function
   const disconnect = useCallback(() => {

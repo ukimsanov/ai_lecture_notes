@@ -6,7 +6,7 @@
 @source "../hooks";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@variant dark (&:is(.dark, .dark *));
 
 @theme inline {
   --color-background: var(--background);
@@ -151,6 +151,17 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Text selection styling */
+  ::selection {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  ::-moz-selection {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
   }
 }
 
