@@ -65,12 +65,12 @@ const ALL_PATHS = [
 
 export const BackgroundBeams = React.memo(
   ({ className }: { className?: string }) => {
-    // Safari: Use only 12 paths for better performance (75% reduction)
+    // Safari: Use ~25 paths for better performance (50% reduction)
     // Chrome/Edge/Firefox: Use all 50 paths for full visual effect
     const paths = useMemo(() => {
       if (isSafari()) {
-        // Use every 4th path to maintain visual distribution
-        return ALL_PATHS.filter((_, index) => index % 4 === 0);
+        // Use every 2nd path to maintain visual distribution
+        return ALL_PATHS.filter((_, index) => index % 2 === 0);
       }
       return ALL_PATHS;
     }, []); // Empty deps - ALL_PATHS is a constant
@@ -127,7 +127,6 @@ export const BackgroundBeams = React.memo(
                   duration: Math.random() * 10 + 10,
                   ease: "easeInOut",
                   repeat: Infinity,
-                  delay: Math.random() * 10,
                 }}
               >
                 <stop stopColor="#18CCFC" stopOpacity="0"></stop>
