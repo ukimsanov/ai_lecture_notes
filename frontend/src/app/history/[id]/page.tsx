@@ -279,12 +279,12 @@ export async function generateMetadata({ params }: PageProps) {
 
   if (data.success && data.data) {
     return {
-      title: `${data.data.video_metadata.video_title} | History | NoteLens`,
+      title: `${data.data.video_metadata.video_title} | History | LectureFlow`,
       description: `Processing result for ${data.data.video_metadata.video_title}`,
     };
   }
 
   return {
-    title: "History Detail | NoteLens",
+    title: "History Detail | LectureFlow",
   };
 }

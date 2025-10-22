@@ -527,7 +527,7 @@ export default function Home() {
               <CardHeader>
                 <CardTitle className="text-2xl">Or Try a Sample Video</CardTitle>
                 <CardDescription className="text-base">
-                  Click any video below to see NoteLens in action • Scroll horizontally →
+                  Click any video below to see LectureFlow in action • Scroll horizontally →
                 </CardDescription>
               </CardHeader>
               <CardContent>

@@ -1,4 +1,4 @@
-# NoteLens Backend
+# LectureFlow Backend
 
 **Phase 0**: Minimal YouTube transcript extraction endpoint
 

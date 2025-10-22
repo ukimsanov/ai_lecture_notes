@@ -158,7 +158,7 @@ export default async function HistoryPage({ searchParams }: PageProps) {
  */
 export async function generateMetadata() {
   return {
-    title: "Processing History | NoteLens",
+    title: "Processing History | LectureFlow",
     description: "View and manage your processed lecture videos",
   };
 }

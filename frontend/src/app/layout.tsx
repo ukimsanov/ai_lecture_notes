@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NoteLens - AI Lecture Notes Generator",
+  title: "LectureFlow - AI Lecture Notes Generator",
   description: "Transform YouTube lectures into comprehensive notes with AI-powered multi-agent analysis",
 };
 

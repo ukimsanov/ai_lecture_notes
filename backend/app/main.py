@@ -1,5 +1,5 @@
 """
-NoteLens - AI Lecture Notes Generator
+LectureFlow - AI Lecture Notes Generator
 Phase 3: Multi-agent processing with PostgreSQL persistence
 
 FastAPI application following October 2025 best practices:
@@ -65,7 +65,7 @@ async def lifespan(app: FastAPI):
     - Database engine cleanup on shutdown
     """
     # Startup
-    print("🚀 NoteLens API starting up...")
+    print("🚀 LectureFlow API starting up...")
     print(f"📍 Environment: {os.getenv('ENV', 'development')}")
 
     # Get database URL and convert for psycopg (remove +asyncpg)
@@ -97,7 +97,7 @@ async def lifespan(app: FastAPI):
         yield
 
     # Shutdown
-    print("👋 NoteLens API shutting down...")
+    print("👋 LectureFlow API shutting down...")
     print("🗄️  Disposing database engine...")
     await dispose_engine()
     print("✅ Cleanup complete")
@@ -107,7 +107,7 @@ async def lifespan(app: FastAPI):
 # FastAPI Application
 # ============================================================================
 app = FastAPI(
-    title="NoteLens API",
+    title="LectureFlow API",
     description="AI-powered YouTube lecture notes generator with multi-agent orchestration",
     version="0.1.0",
     lifespan=lifespan
@@ -173,7 +173,7 @@ async def root() -> HealthResponse:
     """
     return HealthResponse(
         status="healthy",
-        message="NoteLens API is running. Visit /docs for API documentation."
+        message="LectureFlow API is running. Visit /docs for API documentation."
     )
 
 

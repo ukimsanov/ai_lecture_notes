@@ -1,5 +1,5 @@
 """
-Tools package for NoteLens
+Tools package for LectureFlow
 """
 from app.tools.youtube_tool import YouTubeTranscriptExtractor
 from app.tools.summarizer import LectureSummarizer

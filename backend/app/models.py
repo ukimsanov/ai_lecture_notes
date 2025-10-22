@@ -1,5 +1,5 @@
 """
-Pydantic models for NoteLens API
+Pydantic models for LectureFlow API
 """
 from typing import List, Optional
 from pydantic import BaseModel, Field, HttpUrl
