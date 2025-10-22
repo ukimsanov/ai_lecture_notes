@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { marked } from "marked";
 import { toast } from "sonner";
-import { FileText, FileJson, FileDown, Download } from "lucide-react";
+import { FileText, FileJson, FileDown, Download, History, Clock, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { BackgroundBeams } from "@/components/ui/background-beams";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { ProgressTracker } from "@/components/ui/progress-tracker";
@@ -83,6 +86,7 @@ export default function Home() {
   const [modalOpen, setModalOpen] = useState(false);
   const [transcriptModalOpen, setTranscriptModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [cacheInfo, setCacheInfo] = useState<{from_cache: boolean; cached_at?: string; cache_age_hours?: number} | null>(null);
 
   // Processing steps tracker
   const [steps, setSteps] = useState<ProcessingStep[]>([
@@ -91,13 +95,14 @@ export default function Home() {
     { id: "extract", label: "Extract AI tools", status: "pending" },
   ]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, forceReprocess = false) => {
     e.preventDefault();
     setIsStreaming(true);
     setError(null);
     setStreamedNotes("");
     setStreamedMetadata(null);
     setStreamedTools([]);
+    setCacheInfo(null);
 
     // Reset steps and immediately start fetching
     setSteps([
@@ -108,7 +113,7 @@ export default function Home() {
 
     try {
       // Use native EventSource API for SSE (works with GET requests)
-      const url = `http://127.0.0.1:8000/api/process/stream?video_url=${encodeURIComponent(videoUrl)}`;
+      const url = `http://127.0.0.1:8000/api/process/stream?video_url=${encodeURIComponent(videoUrl)}${forceReprocess ? '&force=true' : ''}`;
       const eventSource = new EventSource(url);
 
       eventSource.onmessage = (event) => {
@@ -118,6 +123,16 @@ export default function Home() {
           switch (data.type) {
             case "status":
               // Status updates from backend (optional, since we manage state here)
+              break;
+
+            case "cache":
+              // Cache information
+              setCacheInfo(data.data);
+              if (data.data.from_cache) {
+                toast.success(`Using cached result from ${new Date(data.data.cached_at).toLocaleString()}`, {
+                  description: `Processed ${data.data.cache_age_hours} hours ago`
+                });
+              }
               break;
 
             case "metadata":
@@ -444,8 +459,15 @@ export default function Home() {
         <BackgroundBeams className="opacity-65 dark:opacity-60" />
       </div>
 
-      {/* Theme Toggler - Fixed Position */}
-      <div className="fixed top-6 right-6 z-50">
+      {/* Top Right Actions - Fixed Position */}
+      <div className="fixed top-6 right-6 z-50 flex gap-3">
+        <Link
+          href="/history"
+          className="p-3 rounded-full bg-card/80 backdrop-blur-sm border border-border/50 hover:bg-card hover:border-border transition-all duration-200 shadow-lg hover:shadow-xl group"
+          title="View Processing History"
+        >
+          <History className="h-5 w-5 text-foreground group-hover:text-primary transition-colors" />
+        </Link>
         <AnimatedThemeToggler className="p-3 rounded-full bg-card/80 backdrop-blur-sm border border-border/50 hover:bg-card hover:border-border transition-all duration-200 shadow-lg hover:shadow-xl" />
       </div>
 
@@ -548,6 +570,33 @@ export default function Home() {
                         </button>
                       )}
                     </div>
+                    {/* Cache Indicator and Force Reprocess */}
+                    {cacheInfo && (
+                      <div className="flex flex-wrap gap-3 items-center pt-2">
+                        {cacheInfo.from_cache ? (
+                          <>
+                            <Badge variant="secondary" className="gap-1.5">
+                              <Clock className="h-3 w-3" />
+                              From cache ({cacheInfo.cache_age_hours}h ago)
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => handleSubmit(e as React.FormEvent, true)}
+                              disabled={isStreaming}
+                              className="h-7 px-3 text-xs gap-1.5"
+                            >
+                              <RefreshCw className="h-3 w-3" />
+                              Force Reprocess
+                            </Button>
+                          </>
+                        ) : (
+                          <Badge variant="default" className="gap-1.5">
+                            Freshly processed
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                   </CardDescription>
                 </CardHeader>
               </Card>

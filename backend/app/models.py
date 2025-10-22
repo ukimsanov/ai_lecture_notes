@@ -100,3 +100,47 @@ class MultiAgentResponse(BaseModel):
     success: bool
     data: Optional[MultiAgentResult] = None
     error: Optional[str] = None
+
+
+# ============================================================================
+# Phase 5: History API Models
+# ============================================================================
+
+class HistoryItemSummary(BaseModel):
+    """Summary of a processing result for history list"""
+    id: str = Field(..., description="Processing result UUID")
+    video_id: str = Field(..., description="YouTube video ID")
+    video_title: str = Field(..., description="Video title")
+    channel_name: Optional[str] = Field(None, description="Channel name")
+    duration: Optional[int] = Field(None, description="Video duration in seconds")
+    ai_tools_count: int = Field(..., description="Number of AI tools extracted")
+    processing_time_seconds: float = Field(..., description="Processing time")
+    processed_at: str = Field(..., description="ISO timestamp when processed")
+
+    class Config:
+        from_attributes = True
+
+
+class HistoryListResponse(BaseModel):
+    """Response model for history list endpoint"""
+    success: bool
+    data: Optional[List[HistoryItemSummary]] = None
+    total: int = Field(0, description="Total number of results")
+    page: int = Field(1, description="Current page number")
+    page_size: int = Field(20, description="Results per page")
+    error: Optional[str] = None
+
+
+class HistoryDetailResponse(BaseModel):
+    """Response model for single history item with full details"""
+    success: bool
+    data: Optional[MultiAgentResult] = None
+    processed_at: Optional[str] = Field(None, description="ISO timestamp when processed")
+    error: Optional[str] = None
+
+
+class DeleteHistoryResponse(BaseModel):
+    """Response model for delete history endpoint"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None

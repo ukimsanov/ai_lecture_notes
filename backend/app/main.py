@@ -12,10 +12,12 @@ FastAPI application following October 2025 best practices:
 import os
 import time
 import json
+import asyncio
 from contextlib import asynccontextmanager
-from typing import Dict, Annotated, AsyncGenerator
+from typing import Dict, Annotated, AsyncGenerator, Optional
+from datetime import datetime, timedelta, timezone
 
-from fastapi import FastAPI, HTTPException, status, Depends, Request
+from fastapi import FastAPI, HTTPException, status, Depends, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sse_starlette import EventSourceResponse
@@ -24,6 +26,7 @@ from psycopg_pool import AsyncConnectionPool
 from psycopg.rows import dict_row
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, desc, and_
 
 from app.models import (
     ExtractRequest,
@@ -41,6 +44,7 @@ from app.tools import YouTubeTranscriptExtractor, LectureSummarizer, AIToolExtra
 from app.agents import MultiAgentOrchestrator
 from app.database import get_db, dispose_engine
 from app.database.connection import get_database_url
+from app.database.models import Video, ProcessingResult
 
 # Load environment variables
 load_dotenv()
@@ -127,6 +131,14 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],  # Explicit methods
     allow_headers=["*"],  # Can be more restrictive in production
 )
+
+
+# ============================================================================
+# Include API Routers (Modular Architecture - Oct 2025 Best Practice)
+# ============================================================================
+from app.api import history_router
+
+app.include_router(history_router)
 
 
 # ============================================================================
@@ -356,28 +368,102 @@ async def process_video(
         )
 
 
+# ============================================================================
+# Cache Helper Function (Smart Caching - Phase 5.5)
+# ============================================================================
+
+async def get_cached_result(
+    video_url: str,
+    cache_days: int = 7,
+    db: AsyncSession = None
+) -> Optional[tuple[ProcessingResult, Video]]:
+    """
+    Check for cached processing result within specified days.
+
+    Args:
+        video_url: YouTube video URL
+        cache_days: Number of days to consider cache valid (default: 7)
+        db: Database session (optional, creates new if not provided)
+
+    Returns:
+        Tuple of (ProcessingResult, Video) if cached result exists, None otherwise
+
+    Following SQLAlchemy 2.0 async best practices (Oct 2025)
+    """
+    if db is None:
+        # This shouldn't happen in normal flow, but handle it gracefully
+        return None
+
+    try:
+        # Extract video ID from URL
+        extractor = YouTubeTranscriptExtractor()
+        video_id = extractor._extract_video_id(video_url)
+
+        # Calculate cache cutoff time (timezone-aware for PostgreSQL)
+        cache_cutoff = datetime.now(timezone.utc) - timedelta(days=cache_days)
+
+        # Query for recent processing result
+        query = (
+            select(ProcessingResult, Video)
+            .join(Video, ProcessingResult.video_id == Video.id)
+            .where(
+                and_(
+                    Video.video_id == video_id,
+                    ProcessingResult.created_at > cache_cutoff
+                )
+            )
+            .order_by(desc(ProcessingResult.created_at))
+            .limit(1)
+        )
+
+        result = await db.execute(query)
+        row = result.first()
+
+        if row:
+            processing_result, video = row
+            print(f"💾 Cache HIT: Found result from {processing_result.created_at}")
+            return (processing_result, video)
+        else:
+            print(f"❌ Cache MISS: No recent result found")
+            return None
+
+    except Exception as e:
+        print(f"⚠️  Cache check error: {e}")
+        return None
+
+
 @app.get("/api/process/stream")
-async def process_video_stream(request: Request, video_url: str):
+async def process_video_stream(
+    request: Request,
+    video_url: str,
+    force: bool = Query(False, description="Force reprocessing even if cached result exists"),
+    db: AsyncSession = Depends(get_db)
+):
     """
     Stream video processing with ChatGPT-style real-time updates.
 
-    Phase 5: Server-Sent Events (SSE) streaming endpoint
+    Phase 5.5: Server-Sent Events (SSE) streaming endpoint with smart caching
+    - Checks for cached results (within 7 days)
+    - If cached and force=False: streams from database (fast)
+    - If not cached or force=True: processes fresh (uses API credits)
     - Streams thinking process status updates
     - Streams lecture notes chunks as they're generated
     - Returns AI tools when extraction completes
 
     Yields SSE events:
+    - {type: "cache", data: {from_cache: true, cached_at: "..."}} (if cached)
     - {type: "status", data: "Fetching transcript..."}
-    - {type: "status", data: "Generating lecture notes..."}
-    - {type: "chunk", data: "This video discusses..."}
-    - {type: "status", data: "Extracting AI tools..."}
-    - {type: "tools", data: [{tool1}, {tool2}]}
     - {type: "metadata", data: {...}}
+    - {type: "chunk", data: "text chunk..."}
+    - {type: "notes_complete"}
+    - {type: "tools", data: [{tool1}, {tool2}]}
     - {type: "complete"}
 
     Args:
         request: FastAPI Request for disconnect detection
         video_url: YouTube video URL (query parameter)
+        force: Force reprocessing even if cached (default: False)
+        db: Database session (injected)
 
     Returns:
         EventSourceResponse with SSE stream
@@ -386,6 +472,110 @@ async def process_video_stream(request: Request, video_url: str):
         """Generate SSE events for video processing"""
         try:
             print(f"\n🎬 Starting stream processing for: {video_url}")
+            print(f"🔧 Force reprocess: {force}")
+
+            # ================================================================
+            # Step 0: Check Cache (Smart Caching)
+            # ================================================================
+            cached_result = None
+            if not force:
+                print("💾 Checking cache...")
+                yield {
+                    "event": "message",
+                    "data": json.dumps({"type": "status", "data": "Checking cache..."})
+                }
+
+                cached_result = await get_cached_result(video_url, cache_days=7, db=db)
+
+            if cached_result and not force:
+                # ================================================================
+                # CACHED PATH: Stream from database
+                # ================================================================
+                processing_result, video = cached_result
+                cache_age = datetime.now(timezone.utc) - processing_result.created_at
+                cache_hours = cache_age.total_seconds() / 3600
+
+                print(f"✅ Using cached result (age: {cache_hours:.1f} hours)")
+
+                # Send cache indicator
+                yield {
+                    "event": "message",
+                    "data": json.dumps({
+                        "type": "cache",
+                        "data": {
+                            "from_cache": True,
+                            "cached_at": processing_result.created_at.isoformat(),
+                            "cache_age_hours": round(cache_hours, 1)
+                        }
+                    })
+                }
+
+                # Send metadata
+                yield {
+                    "event": "message",
+                    "data": json.dumps({
+                        "type": "metadata",
+                        "data": {
+                            "video_id": video.video_id,
+                            "video_title": video.title,
+                            "video_url": video.video_url,
+                            "channel_name": video.channel_name,
+                            "duration": video.duration,
+                            "transcript": processing_result.transcript_text
+                        }
+                    })
+                }
+
+                # Stream lecture notes (simulated chunking for consistency)
+                notes = processing_result.lecture_notes
+                chunk_size = 50  # Characters per chunk
+                for i in range(0, len(notes), chunk_size):
+                    chunk = notes[i:i + chunk_size]
+                    yield {
+                        "event": "message",
+                        "data": json.dumps({"type": "chunk", "data": chunk})
+                    }
+                    # Small delay to simulate streaming (optional)
+                    await asyncio.sleep(0.02)
+
+                # Notes complete
+                yield {
+                    "event": "message",
+                    "data": json.dumps({"type": "notes_complete"})
+                }
+
+                # Send AI tools
+                yield {
+                    "event": "message",
+                    "data": json.dumps({
+                        "type": "tools",
+                        "data": processing_result.ai_tools
+                    })
+                }
+
+                # Complete
+                print("🎉 Cached stream complete!\n")
+                yield {
+                    "event": "message",
+                    "data": json.dumps({"type": "complete"})
+                }
+                return
+
+            # ================================================================
+            # FRESH PATH: Process new (API calls)
+            # ================================================================
+            print("🔄 Processing fresh (no cache or forced reprocess)")
+
+            # Send cache indicator (not cached)
+            if force:
+                print("💪 Force reprocess requested")
+                yield {
+                    "event": "message",
+                    "data": json.dumps({
+                        "type": "cache",
+                        "data": {"from_cache": False, "reason": "forced_reprocess"}
+                    })
+                }
 
             # ================================================================
             # Step 1: Fetch Transcript
