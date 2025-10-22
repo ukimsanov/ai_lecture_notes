@@ -11,12 +11,14 @@ FastAPI application following October 2025 best practices:
 """
 import os
 import time
+import json
 from contextlib import asynccontextmanager
-from typing import Dict, Annotated
+from typing import Dict, Annotated, AsyncGenerator
 
-from fastapi import FastAPI, HTTPException, status, Depends
+from fastapi import FastAPI, HTTPException, status, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sse_starlette import EventSourceResponse
 from dotenv import load_dotenv
 from psycopg_pool import AsyncConnectionPool
 from psycopg.rows import dict_row
@@ -35,7 +37,7 @@ from app.models import (
     AITool,
     VideoMetadata
 )
-from app.tools import YouTubeTranscriptExtractor, LectureSummarizer
+from app.tools import YouTubeTranscriptExtractor, LectureSummarizer, AIToolExtractor
 from app.agents import MultiAgentOrchestrator
 from app.database import get_db, dispose_engine
 from app.database.connection import get_database_url
@@ -352,6 +354,149 @@ async def process_video(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process video: {str(e)}"
         )
+
+
+@app.get("/api/process/stream")
+async def process_video_stream(request: Request, video_url: str):
+    """
+    Stream video processing with ChatGPT-style real-time updates.
+
+    Phase 5: Server-Sent Events (SSE) streaming endpoint
+    - Streams thinking process status updates
+    - Streams lecture notes chunks as they're generated
+    - Returns AI tools when extraction completes
+
+    Yields SSE events:
+    - {type: "status", data: "Fetching transcript..."}
+    - {type: "status", data: "Generating lecture notes..."}
+    - {type: "chunk", data: "This video discusses..."}
+    - {type: "status", data: "Extracting AI tools..."}
+    - {type: "tools", data: [{tool1}, {tool2}]}
+    - {type: "metadata", data: {...}}
+    - {type: "complete"}
+
+    Args:
+        request: FastAPI Request for disconnect detection
+        video_url: YouTube video URL (query parameter)
+
+    Returns:
+        EventSourceResponse with SSE stream
+    """
+    async def event_generator() -> AsyncGenerator[dict, None]:
+        """Generate SSE events for video processing"""
+        try:
+            print(f"\n🎬 Starting stream processing for: {video_url}")
+
+            # ================================================================
+            # Step 1: Fetch Transcript
+            # ================================================================
+            print("📹 Step 1: Fetching transcript...")
+            yield {
+                "event": "message",
+                "data": json.dumps({"type": "status", "data": "Fetching transcript..."})
+            }
+
+            extractor = YouTubeTranscriptExtractor()
+            transcript_data = extractor.extract(video_url)
+            print(f"✅ Transcript fetched: {len(transcript_data.full_text)} chars")
+
+            # Send video metadata and transcript
+            yield {
+                "event": "message",
+                "data": json.dumps({
+                    "type": "metadata",
+                    "data": {
+                        **transcript_data.metadata.model_dump(),
+                        "transcript": transcript_data.full_text
+                    }
+                })
+            }
+
+            # Check for disconnect
+            if await request.is_disconnected():
+                return
+
+            # ================================================================
+            # Step 2: Stream Lecture Notes Generation
+            # ================================================================
+            print("📝 Step 2: Streaming lecture notes generation...")
+            yield {
+                "event": "message",
+                "data": json.dumps({"type": "status", "data": "Generating lecture notes..."})
+            }
+
+            summarizer = LectureSummarizer()
+            chunk_count = 0
+
+            # Stream lecture notes chunks
+            async for chunk in summarizer.summarize_stream(
+                transcript=transcript_data.full_text,
+                video_title=transcript_data.metadata.video_title
+            ):
+                # Check for disconnect
+                if await request.is_disconnected():
+                    print("⚠️  Client disconnected")
+                    return
+
+                chunk_count += 1
+                yield {
+                    "event": "message",
+                    "data": json.dumps({"type": "chunk", "data": chunk})
+                }
+
+            print(f"✅ Lecture notes streamed: {chunk_count} chunks")
+
+            # ================================================================
+            # Step 3: Extract AI Tools
+            # ================================================================
+            print("🔧 Step 3: Extracting AI tools...")
+            yield {
+                "event": "message",
+                "data": json.dumps({"type": "status", "data": "Extracting AI tools..."})
+            }
+
+            tool_extractor = AIToolExtractor()
+            ai_tools = tool_extractor.extract(
+                transcript=transcript_data.full_text,
+                video_title=transcript_data.metadata.video_title
+            )
+            print(f"✅ AI tools extracted: {len(ai_tools)} tools found")
+
+            # Send complete tools list
+            yield {
+                "event": "message",
+                "data": json.dumps({
+                    "type": "tools",
+                    "data": [tool.model_dump() for tool in ai_tools]
+                })
+            }
+
+            # ================================================================
+            # Step 4: Complete
+            # ================================================================
+            print("🎉 Stream processing complete!\n")
+            yield {
+                "event": "message",
+                "data": json.dumps({"type": "complete"})
+            }
+
+        except ValueError as e:
+            # Client error
+            yield {
+                "event": "error",
+                "data": json.dumps({"type": "error", "error": str(e)})
+            }
+        except Exception as e:
+            # Server error
+            print(f"❌ Streaming error: {e}")
+            import traceback
+            traceback.print_exc()
+            yield {
+                "event": "error",
+                "data": json.dumps({"type": "error", "error": f"Processing failed: {str(e)}"})
+            }
+
+    return EventSourceResponse(event_generator())
 
 
 # ============================================================================

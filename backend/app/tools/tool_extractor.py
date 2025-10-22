@@ -64,6 +64,7 @@ class AIToolExtractor:
 
         # Extract using GPT-4o-mini with structured outputs
         # Verified October 2025: Use beta.chat.completions.parse() for Pydantic
+        # temperature=0 ensures deterministic results (same input = same output)
         response = self.client.beta.chat.completions.parse(
             model=self.model,
             messages=[
@@ -76,7 +77,8 @@ class AIToolExtractor:
                     "content": prompt
                 }
             ],
-            response_format=ToolExtractionResult
+            response_format=ToolExtractionResult,
+            temperature=0  # Deterministic extraction
         )
 
         # Extract the parsed response
