@@ -136,9 +136,10 @@ app.add_middleware(
 # ============================================================================
 # Include API Routers (Modular Architecture - Oct 2025 Best Practice)
 # ============================================================================
-from app.api import history_router
+from app.api import history_router, presets_router
 
 app.include_router(history_router)
+app.include_router(presets_router)
 
 
 # ============================================================================

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { BackgroundBeams } from "@/components/ui/background-beams";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { ProgressTracker } from "@/components/ui/progress-tracker";
+import { PresetVideos } from "@/components/preset-videos";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -463,12 +464,14 @@ export default function Home() {
       <div className="fixed top-6 right-6 z-50 flex gap-3">
         <Link
           href="/history"
-          className="p-3 rounded-full bg-card/80 backdrop-blur-sm border border-border/50 hover:bg-card hover:border-border transition-all duration-200 shadow-lg hover:shadow-xl group"
+          className="flex items-center justify-center h-11 w-11 rounded-full bg-card/80 backdrop-blur-sm border border-border/50 hover:bg-card hover:border-border transition-all duration-200 shadow-lg hover:shadow-xl group"
           title="View Processing History"
         >
           <History className="h-5 w-5 text-foreground group-hover:text-primary transition-colors" />
         </Link>
-        <AnimatedThemeToggler className="p-3 rounded-full bg-card/80 backdrop-blur-sm border border-border/50 hover:bg-card hover:border-border transition-all duration-200 shadow-lg hover:shadow-xl" />
+        <div className="flex items-center justify-center h-11 w-11">
+          <AnimatedThemeToggler className="p-2.5 rounded-full bg-card/80 backdrop-blur-sm border border-border/50 hover:bg-card hover:border-border transition-all duration-200 shadow-lg hover:shadow-xl" />
+        </div>
       </div>
 
       <div className="relative z-10 min-h-screen p-6 md:p-12">
@@ -517,6 +520,30 @@ export default function Home() {
               </form>
             </CardContent>
           </Card>
+
+          {/* Preset Videos Section */}
+          {!isStreaming && !streamedMetadata && (
+            <Card className="backdrop-blur-xl bg-background/80 border-border/50 shadow-2xl">
+              <CardHeader>
+                <CardTitle className="text-2xl">Or Try a Sample Video</CardTitle>
+                <CardDescription className="text-base">
+                  Click any video below to see NoteLens in action • Scroll horizontally →
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PresetVideos onSelect={(url) => {
+                  setVideoUrl(url);
+                  // Auto-submit after setting URL
+                  setTimeout(() => {
+                    const form = document.querySelector('form');
+                    if (form) {
+                      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+                    }
+                  }, 100);
+                }} />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Error Display */}
           {error && (
