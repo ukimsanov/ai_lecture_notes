@@ -446,6 +446,12 @@ async def process_video_stream(request: Request, video_url: str):
 
             print(f"✅ Lecture notes streamed: {chunk_count} chunks")
 
+            # Notify frontend that notes generation is complete
+            yield {
+                "event": "message",
+                "data": json.dumps({"type": "notes_complete"})
+            }
+
             # ================================================================
             # Step 3: Extract AI Tools
             # ================================================================

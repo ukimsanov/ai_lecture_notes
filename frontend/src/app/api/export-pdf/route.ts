@@ -39,15 +39,16 @@ export async function POST(request: NextRequest) {
 
     const page = await browser.newPage();
 
-    // Set content with proper styling
+    // Set content with proper styling - networkidle0 waits for all network requests (fonts, etc.)
     await page.setContent(html, {
-      waitUntil: 'networkidle0',
+      waitUntil: ['networkidle0', 'load'],
     });
 
     // Generate PDF with quality settings
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
+      preferCSSPageSize: false,
       margin: {
         top: '1cm',
         right: '1cm',

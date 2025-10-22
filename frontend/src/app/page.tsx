@@ -82,9 +82,9 @@ export default function Home() {
     setStreamedMetadata(null);
     setStreamedTools([]);
 
-    // Reset steps
+    // Reset steps and immediately start fetching
     setSteps([
-      { id: "fetch", label: "Fetch transcript", status: "pending" },
+      { id: "fetch", label: "Fetch transcript", status: "in_progress" },
       { id: "generate", label: "Generate lecture notes", status: "pending" },
       { id: "extract", label: "Extract AI tools", status: "pending" },
     ]);
@@ -100,22 +100,7 @@ export default function Home() {
 
           switch (data.type) {
             case "status":
-              // Update step status based on message
-              if (data.data.includes("Fetching transcript")) {
-                setSteps(prev => prev.map(s =>
-                  s.id === "fetch" ? { ...s, status: "in_progress" } : s
-                ));
-              } else if (data.data.includes("Generating lecture notes")) {
-                setSteps(prev => prev.map(s =>
-                  s.id === "fetch" ? { ...s, status: "completed" } :
-                  s.id === "generate" ? { ...s, status: "in_progress" } : s
-                ));
-              } else if (data.data.includes("Extracting AI tools")) {
-                setSteps(prev => prev.map(s =>
-                  s.id === "generate" ? { ...s, status: "completed" } :
-                  s.id === "extract" ? { ...s, status: "in_progress" } : s
-                ));
-              }
+              // Status updates from backend (optional, since we manage state here)
               break;
 
             case "metadata":
@@ -123,14 +108,24 @@ export default function Home() {
               if (data.data.transcript) {
                 setStreamedTranscript(data.data.transcript);
               }
+              // Fetch complete, start both parallel tasks
               setSteps(prev => prev.map(s =>
-                s.id === "fetch" ? { ...s, status: "completed" } : s
+                s.id === "fetch" ? { ...s, status: "completed" } :
+                s.id === "generate" ? { ...s, status: "in_progress" } :
+                s.id === "extract" ? { ...s, status: "in_progress" } : s
               ));
               break;
 
             case "chunk":
               // ChatGPT-style: append chunks with smooth animation
               setStreamedNotes((prev) => prev + data.data);
+              break;
+
+            case "notes_complete":
+              // Mark notes generation as completed
+              setSteps(prev => prev.map(s =>
+                s.id === "generate" ? { ...s, status: "completed" } : s
+              ));
               break;
 
             case "tools":
@@ -247,28 +242,98 @@ export default function Home() {
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <script src="https://cdn.tailwindcss.com"></script>
             <style>
               @import url('https://fonts.googleapis.com/css2?family=Geist+Sans:wght@400;500;600;700&display=swap');
 
               body {
                 font-family: 'Geist Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
                 font-size: 16px;
-                line-height: 1.6;
+                line-height: 1.7;
                 color: #1a1a1a;
                 padding: 2rem;
+                max-width: 800px;
               }
 
-              h1 { font-size: 2rem; font-weight: 700; margin: 1.5rem 0 1rem; }
-              h2 { font-size: 1.5rem; font-weight: 600; margin: 1.25rem 0 0.75rem; }
-              h3 { font-size: 1.25rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+              /* Headers */
+              h1 {
+                font-size: 2rem;
+                font-weight: 700;
+                margin: 2rem 0 1rem;
+                line-height: 1.2;
+                color: #111827;
+              }
+              h2 {
+                font-size: 1.5rem;
+                font-weight: 700;
+                margin: 1.75rem 0 1rem;
+                line-height: 1.3;
+                color: #1f2937;
+              }
+              h3 {
+                font-size: 1.25rem;
+                font-weight: 600;
+                margin: 1.5rem 0 0.75rem;
+                line-height: 1.4;
+                color: #374151;
+              }
+              h4 {
+                font-size: 1.125rem;
+                font-weight: 600;
+                margin: 1.25rem 0 0.5rem;
+              }
+              h5, h6 {
+                font-size: 1rem;
+                font-weight: 600;
+                margin: 1rem 0 0.5rem;
+              }
 
-              p { margin-bottom: 0.75rem; }
-              strong { font-weight: 600; }
+              /* Paragraphs */
+              p {
+                margin-bottom: 1rem;
+                line-height: 1.7;
+              }
+
+              /* Text formatting */
+              strong { font-weight: 700; }
               em { font-style: italic; }
 
-              ul, ol { margin: 0.75rem 0; padding-left: 1.5rem; }
-              li { margin: 0.25rem 0; }
+              /* Lists */
+              ul, ol {
+                margin: 1rem 0;
+                padding-left: 2rem;
+                line-height: 1.8;
+              }
+
+              ul {
+                list-style-type: disc;
+              }
+
+              ol {
+                list-style-type: decimal;
+              }
+
+              li {
+                margin: 0.5rem 0;
+                padding-left: 0.5rem;
+              }
+
+              li p {
+                margin: 0.25rem 0;
+              }
+
+              /* Nested lists */
+              ul ul, ol ul {
+                list-style-type: circle;
+                margin: 0.25rem 0;
+              }
+
+              ul ul ul, ol ul ul {
+                list-style-type: square;
+              }
+
+              ol ol {
+                list-style-type: lower-alpha;
+              }
 
               code {
                 background: #f3f4f6;
