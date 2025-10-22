@@ -1,11 +1,76 @@
+# Environment variables
 .env
+.env.local
+.env.*.local
+
+# Python
 .venv/
+venv/
 __pycache__/
 *.py[cod]
-*.log
-.DS_Store
-uv.lock
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
 
-# Project specific
+# Backend
+backend/venv/
+backend/__pycache__/
+backend/alembic/versions/__pycache__/
+
+# Node.js / Frontend
+node_modules/
+frontend/node_modules/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js
+frontend/.next/
+frontend/out/
+frontend/build/
+.next/
+out/
+build/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Build artifacts
+dist/
+*.egg-info/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Misc
+uv.lock
+.turbo/
+.vercel/
+
+# Legacy (removed from project)
 output/
-Users/  # To prevent duplicate directory structures from being committed
+Users/
